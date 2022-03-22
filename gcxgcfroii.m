@@ -16,16 +16,21 @@
 %working on 1D for a bit more then coming back to 2D
 %we need a way to seperate features within a ROI
 
-function [arrayPvals, pValCutOff, ticData, ticDataReshaped] = gcxgcfroii(specdata, modTime, acqRate, wndw, cutOff)
+function [arrayPvals, pValCutOff, ticData, ticDataReshaped] = gcxgcfroii(chromTensor, wndw, cutOff)
+
+%need to transform the tensor into a linear array
+sizeTensor = size(chromTensor);
+
+specdata = reshape(chromTensor, [sizeTensor(1)*sizeTensor(2), sizeTensor(3)]);
 
 %how many scans per mod
-scansPerMod = modTime * acqRate;
+scansPerMod = sizeTensor(2);
 
 %index 1 (where to start measuring from)
 indxCounter(1) = 1;
 
 %where to stop counting
-indxCounter(2) = modTime * acqRate;
+indxCounter(2) = sizeTensor(2);
 
 %calculate size of the specData
 sizeData = size(specdata);
@@ -145,12 +150,54 @@ ticDataReshaped = reshape(ticData, scansPerMod, []);
 %total number of datapoints
 totalData = numbScans * ionsPerScan;
 
-
 %have to flip all arrays
 arrayPvals = flip(arrayPvals);
 pValCutOff = flip(pValCutOff);
 ticDataReshaped = flip(ticDataReshaped);
 
-%gonna put watershed stuff here soon.
+%%%%%%watershed segmentation here%%%%%
+%calculate the gradient, find regions (edges) with extreme changes
+gmag = imgradient(pValCutOff);
+
+%need to mark objects in the foreground
+se = strel('disk', 4000);
+Io = imopen(pValCutOff, se);
+
+%opening by reconstruction
+Ie = imerode(pValCutOff, se);
+Iobr = imreconstruct(Ie, pValCutOff);
+
+%followed by closing, helps to fill in regions that look like dougnuts
+Ioc = imclose(Io, se);
+
+Iobrd = imdilate(Iobr, se);
+Iobrcbr = imreconstruct(imcomplement(Iobrd),imcomplement(Iobr));
+Iobrcbr = imcomplement(Iobrcbr);
+
+%regional maxima calc
+%this affects the watershed here
+fgm = imregionalmax(Iobrcbr);
+
+se2 = strel(ones(5,5));
+fgm2 = imclose(fgm,se2);
+fgm3 = imerode(fgm2,se2);
+
+%again affects the watershed
+fgm4 = bwareaopen(fgm3, 5);
+
+%compute background markers
+bw = imbinarize(Iobrcbr);
+
+%watershed
+D = bwdist(bw);
+%DL has our different regions of interest in it
+DL = watershed(D);
+
+%overlay probability cutoff with the watershed
+Lrgb = label2rgb(DL, 'jet','w','shuffle');
+image(pValCutOff, 'CDataMapping', 'scaled');
+hold on
+himage = imshow(Lrgb);
+himage.AlphaData = 0.3;
 
 end
