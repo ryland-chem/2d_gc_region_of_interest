@@ -24,13 +24,13 @@ sizeTensor = size(chromTensor);
 specdata = reshape(chromTensor, [sizeTensor(1)*sizeTensor(2), sizeTensor(3)]);
 
 %how many scans per mod
-scansPerMod = sizeTensor(2);
+scansPerMod = sizeTensor(1);
 
 %index 1 (where to start measuring from)
 indxCounter(1) = 1;
 
 %where to stop counting
-indxCounter(2) = sizeTensor(2);
+indxCounter(2) = sizeTensor(1);
 
 %calculate size of the specData
 sizeData = size(specdata);
@@ -151,9 +151,9 @@ ticDataReshaped = reshape(ticData, scansPerMod, []);
 totalData = numbScans * ionsPerScan;
 
 %have to flip all arrays
-arrayPvals = flip(arrayPvals);
-pValCutOff = flip(pValCutOff);
-ticDataReshaped = flip(ticDataReshaped);
+% arrayPvals = flip(arrayPvals);
+% pValCutOff = flip(pValCutOff);
+% ticDataReshaped = flip(ticDataReshaped);
 
 % % %%%%%%watershed segmentation here%%%%%
 % % %calculate the gradient, find regions (edges) with extreme changes
