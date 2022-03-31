@@ -1,13 +1,14 @@
 %calculate the gradient, find regions (edges) with extreme changes
-gmag = imgradient(pValCutOff);
+x = pValCutOff;
+gmag = imgradient(x);
 
 %need to mark objects in the foreground
-se = strel('disk', 4000);
-Io = imopen(pValCutOff, se);
+se = strel('disk', 1);
+Io = imopen(x, se);
 
 %opening by reconstruction
-Ie = imerode(pValCutOff, se);
-Iobr = imreconstruct(Ie, pValCutOff);
+Ie = imerode(x, se);
+Iobr = imreconstruct(Ie, x);
 
 %followed by closing, helps to fill in regions that look like dougnuts
 Ioc = imclose(Io, se);
@@ -37,10 +38,14 @@ DL = watershed(D);
 
 %overlay probability cutoff with the watershed
 Lrgb = label2rgb(DL, 'jet','w','shuffle');
-image(pValCutOff, 'CDataMapping', 'scaled');
+clims = [0 1];
+imagesc((flipud(pValCutOff)), clims);
+colormap jet;
+set(gca,'YDir','normal');
+ylabel("2nd Dimension Acquisitions"); xlabel("1st Dimension Acquisitions");
 hold on
-himage = imshow(Lrgb);
-himage.AlphaData = 0.3;
+himage = imagesc(flipud(Lrgb));
+himage.AlphaData = 0.5;
 
 
 
