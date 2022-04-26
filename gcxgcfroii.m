@@ -1,6 +1,6 @@
 %%Region of interest selection for 2D GCxGC-MS data using pseudo-fisher ratios
 %
-%(c) 2021 Michael Sorochan Armstrong & Ryland T. Giebelhaus
+%(c) 2022 Ryland T. Giebelhaus & Michael Sorochan Armstrong
 %
 %Utilisation of a moving window function to calculate the f ratios for a
 %particular region of interest. Smaller windows are more sensitive to
@@ -62,7 +62,6 @@ while indxCounter(2) <= numbScans
     
     iter = 1;
     
-    %Using a while loop instead of doing arithmetic; change this later
     while indx(2) <= sz(1)
         
         %C is the autoscaled matrix
