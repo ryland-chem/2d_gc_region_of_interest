@@ -1,18 +1,48 @@
-%%Region of interest selection for 2D GCxGC-MS data using pseudo-fisher ratios
+%%Region of interest selection for 2D GCxGC-MS data using pseudo-fisher
+%%ratios with connected components segmentation
 %
-%(c) 2022 Ryland T. Giebelhaus & Michael Sorochan Armstrong
+%(c) 2022 Ryland T. Giebelhaus, Michael D.S. Armstrong, A. Paulina de la
+%Mata, James J. Harynuk
 %
 %Utilisation of a moving window function to calculate the f ratios for a
 %particular region of interest. Smaller windows are more sensitive to
 %smaller features, but may split larger regions of interest. Larger windows
 %are less sensitive to small regions and create larger regions of interest.
-%Currently this returns a vector of probabilities for one-dimensional data,
-%and it is up to the user to determine the significance level.
 %
-%
-%v1.01
+%Code does the following
+%-takes tensor IxJxK where I is 2nd dimension scans, J is 1st dimension
+%scans, and K is ion intensities for m/z's in scan, moving window size
+%(typically 10-45) and probability threshold (0.7 is a good place to
+%start)
+%-Returns array of probability values (0-1) across entire chromatographic
+%plane and probabilities above probability threshold
+%-TIC of input data
+%-matrix of where each ROI is located
+%-number of ROIs found
+%-tensor of uploaded chromatogram with the noise (non ROIs) dropped.
 
-function [arrayPvals, pValCutOff, ticDataReshaped, labMatrix, noiseDropped] = gcxgcfroii(chromTensor, wndw, cutOff)
+%%%inputs
+%%chromTensor: IxJxK where I is 2nd dimension scans, J is 1st dimension
+%scans, and K is ion intensities for m/z's in scan
+%%wndw: Moving window size, ideally the average peak width, start with 10
+%and work up from there
+%%cutOff: probability threshold, start with 0.7 and change depending on
+%desired confidence level
+
+%%%outputs
+%%arrayPvals: Returns array of probability values (0-1) across entire
+%chromatographic plane
+%%pValCutOff: probability values above the probability threshold across
+%chromatographic plane
+%%ticDataReshaped: TIC formatted in shape of chromatographic plane
+%%labMatrix: IxJ matrix showing whether a scan is in an ROI (>0) and which
+% ROI a given scan is located in.
+%%numROIs: The number of distinct ROIs found using the user inputs
+%%noiseDropped: IxJxK tensor of uploaded data except the nonROI scans are
+%dropped (set to zero)
+
+
+function [arrayPvals, pValCutOff, ticDataReshaped, labMatrix, numROIs, noiseDropped] = gcxgcfroii(chromTensor, wndw, cutOff)
 
 %bool to print graph
 %at the start so user can input then let run
@@ -144,18 +174,7 @@ ticData = ticData';
 %need to reshape so it is array that is printable with image()
 ticDataReshaped = reshape(ticData, scansPerMod, []);
 
-%need to use loop and logic to drop regions that are < pValVCutoff
-%in the array of P vals
-
-%total number of datapoints
-totalData = numbScans * ionsPerScan;
-
-%have to flip all arrays
-% arrayPvals = flip(arrayPvals);
-% pValCutOff = flip(pValCutOff);
-% ticDataReshaped = flip(ticDataReshaped);
-
-% % %%%%%%connectedComponents segmentation here%%%%%
+%connected components segmentation here
 
 %Convert the image to Black and White (pValCutOff)
 BWpVal = pValCutOff > 0;
