@@ -11,4 +11,4 @@ labMatrix = labelmatrix(conComp);
 numROIs = max(labMatrix(:));
 
 %Display the image of unique ROIs
-imshow(label2rgb(labMatrix,'jet','k','shuffle'));
+Lrgb = label2rgb(labMatrix,'jet','w','shuffle');

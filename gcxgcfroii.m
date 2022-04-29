@@ -9,14 +9,15 @@
 %Currently this returns a vector of probabilities for one-dimensional data,
 %and it is up to the user to determine the significance level.
 %
-%Currently not optimised for speed.
 %
 %v1.01
 
-%working on 1D for a bit more then coming back to 2D
-%we need a way to seperate features within a ROI
+function [arrayPvals, pValCutOff, ticData, ticDataReshaped, labMatrix] = gcxgcfroii(chromTensor, wndw, cutOff)
 
-function [arrayPvals, pValCutOff, ticData, ticDataReshaped] = gcxgcfroii(chromTensor, wndw, cutOff)
+%bool to print graph
+%at the start so user can input then let run
+prompt = 'Output graph (y/n)';
+choicePrint = input(prompt, 's');
 
 %need to transform the tensor into a linear array
 sizeTensor = size(chromTensor);
@@ -154,49 +155,35 @@ totalData = numbScans * ionsPerScan;
 % pValCutOff = flip(pValCutOff);
 % ticDataReshaped = flip(ticDataReshaped);
 
-% % %%%%%%watershed segmentation here%%%%%
-% % %calculate the gradient, find regions (edges) with extreme changes
-% gmag = imgradient(pValCutOff);
-% 
-% %need to mark objects in the foreground
-% se = strel('disk', 4000);
-% Io = imopen(pValCutOff, se);
-% 
-% %opening by reconstruction
-% Ie = imerode(pValCutOff, se);
-% Iobr = imreconstruct(Ie, pValCutOff);
-% 
-% %followed by closing, helps to fill in regions that look like dougnuts
-% Ioc = imclose(Io, se);
-% 
-% Iobrd = imdilate(Iobr, se);
-% Iobrcbr = imreconstruct(imcomplement(Iobrd),imcomplement(Iobr));
-% Iobrcbr = imcomplement(Iobrcbr);
-% 
-% %regional maxima calc
-% %this affects the watershed here
-% fgm = imregionalmax(Iobrcbr);
-% 
-% se2 = strel(ones(5,5));
-% fgm2 = imclose(fgm,se2);
-% fgm3 = imerode(fgm2,se2);
-% 
-% %again affects the watershed
-% fgm4 = bwareaopen(fgm3, 5);
-% 
-% %compute background markers
-% bw = imbinarize(Iobrcbr);
-% 
-% %watershed
-% D = bwdist(bw);
-% %DL has our different regions of interest in it
-% DL = watershed(D);
-% 
-% %overlay probability cutoff with the watershed
-% Lrgb = label2rgb(DL, 'jet','w','shuffle');
-% image(pValCutOff, 'CDataMapping', 'scaled');
-% hold on
-% himage = imshow(Lrgb);
-% himage.AlphaData = 0.3;
+% % %%%%%%connectedComponents segmentation here%%%%%
+
+%Convert the image to Black and White (pValCutOff)
+BWpVal = pValCutOff > 0;
+
+%calculate connected components
+conComp = bwconncomp(BWpVal);
+
+%Creating label matrix for each ROI
+labMatrix = labelmatrix(conComp);
+
+%number of ROIs
+numROIs = max(labMatrix(:));
+
+%display a graph if the user requests one. Shows the ROIS overlaid on the
+%TIC of the input chromatogram.
+if choicePrint == 'y'
+    
+    clims = [10 5E5];
+    colormap jet;
+    imagesc((ticDataReshaped),clims);
+    set(gca,'YDir','normal');
+    ylabel("2nd Dimension Acquisitions"); xlabel("1st Dimension Acquisitions");
+    hold on
+    himage = imshow(Lrgb);
+    himage.AlphaData = 0.8;
+
+else
+    
+end
 
 end
