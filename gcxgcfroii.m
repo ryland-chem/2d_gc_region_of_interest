@@ -12,7 +12,7 @@
 %
 %v1.01
 
-function [arrayPvals, pValCutOff, ticData, ticDataReshaped, labMatrix] = gcxgcfroii(chromTensor, wndw, cutOff)
+function [arrayPvals, pValCutOff, ticDataReshaped, labMatrix, noiseDropped] = gcxgcfroii(chromTensor, wndw, cutOff)
 
 %bool to print graph
 %at the start so user can input then let run
@@ -173,6 +173,8 @@ numROIs = max(labMatrix(:));
 %TIC of the input chromatogram.
 if choicePrint == 'y'
     
+    Lrgb = label2rgb(labMatrix,'jet','w','shuffle');
+    
     clims = [10 5E5];
     colormap jet;
     imagesc((ticDataReshaped),clims);
@@ -185,5 +187,27 @@ if choicePrint == 'y'
 else
     
 end
+
+%itterate over the entire chromatogram and drop noise regions giving output
+%of just ROIs
+%populate tensor with zeros for speed
+noiseDropped = zeros(scansPerMod*numbMods, ionsPerScan);
+
+for ii = 1:numbMods*scansPerMod
+    
+    if labMatrix(ii) > 0
+       
+        noiseDropped(ii,:) = specdata(ii,:);
+        
+    else
+        
+        noiseDropped(ii,:) = zeros(1, ionsPerScan);
+        
+    end
+    
+end
+
+%refold the noiseDropped into a tensor
+noiseDropped = reshape(noiseDropped, [scansPerMod, numbMods, ionsPerScan]);
 
 end
