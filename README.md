@@ -41,4 +41,4 @@ dataOut is the only output, which is a structure containing a number of fields d
 
 ## 3.0 References
 
-[1] Ryland T. Giebelhaus, Michael D. Sorochan Armstrong, A. Paulina de la Mata, and James J. Harynuk. Untargeted region of interest selection for gas chromatography - mass spectrometry data using a pseudo F-ratio moving window, Journal of Chromatography A, 2022, 1682, 463499; 10.1016/j.chroma.2022.463499
+[1] Ryland T. Giebelhaus, Michael D. Sorochan Armstrong, A. Paulina de la Mata, and James J. Harynuk. Untargeted region of interest selection for gas chromatography - mass spectrometry data using a pseudo F-ratio moving window, _Journal of Chromatography A_, **2022**, 1682, 463499; 10.1016/j.chroma.2022.463499
