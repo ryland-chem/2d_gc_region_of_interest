@@ -1,4 +1,4 @@
-%%Region of interest selection for 2D GCxGC-MS data using pseudo-fisher
+  %%Region of interest selection for 2D GCxGC-MS data using pseudo-fisher
 %%ratios with connected components segmentation
 %
 %(c) 2022 Ryland T. Giebelhaus, Michael D.S. Armstrong, A. Paulina de la
@@ -42,22 +42,28 @@
 %dropped (set to zero)
 
 
-function [arrayPvals, pValCutOff, ticDataReshaped, labMatrix, numROIs, noiseDropped] = gcxgcfroii(chromTensor, wndw, cutOff)
+function [arrayPvals, pValCutOff, ticDataReshaped, noiseDropped, arrayBools] = gcxgcfroii(specdata, wndw, cutOff, StdevIMP, stdIn, sizeTensor)
 
 %bool to print graph
 %at the start so user can input then let run
-prompt = 'Output graph (y/n)';
-choicePrint = input(prompt, 's');
+%prompt = 'Output graph (y/n)';
+%choicePrint = input(prompt, 's');
+
+% choicePrint = 'y';
 
 %need to transform the tensor into a linear array
-sizeTensor = size(chromTensor);
+%sizeTensor = size(chromTensor);
 
-specdata = reshape(chromTensor, [sizeTensor(1)*sizeTensor(2), sizeTensor(3)]);
+%specdata = reshape(chromTensor, [sizeTensor(1)*sizeTensor(2), sizeTensor(3)]);
+
+%take standard deviation of everything
+stDevAll = std(specdata);
 
 %how many scans per mod
 scansPerMod = sizeTensor(1);
 
 %index 1 (where to start measuring from)
+indxCounter = [];
 indxCounter(1) = 1;
 
 %where to stop counting
@@ -77,8 +83,12 @@ numbMods = numbScans/scansPerMod;
 
 % %prepopulating array for speed
 arrayPvals = [];
+arrayBools = [];
+
+    apvIndx = 1;
 
 while indxCounter(2) <= numbScans
+
     
     data = specdata(indxCounter(1):indxCounter(2),:);
 
@@ -92,11 +102,34 @@ while indxCounter(2) <= numbScans
     mat = [];
     
     iter = 1;
+
+    %inputs for while loop:
+    %indx
+    %sz
+    %StdevIMP
+    %data
+    %stDevAll
+    %stdIn
+    %f
     
     while indx(2) <= sz(1)
         
         %C is the autoscaled matrix
-        C = (data(indx(1):indx(2),:) - mean(data(indx(1):indx(2),:)))./std(data(indx(1):indx(2),:));
+        %need to update this to make more sense
+
+        if StdevIMP == 1
+
+            C = (data(indx(1):indx(2),:) - mean(data(indx(1):indx(2),:)))./std(data(indx(1):indx(2),:));
+
+        elseif StdevIMP == 0
+
+            C = (data(indx(1):indx(2),:) - mean(data(indx(1):indx(2),:)))./stDevAll;
+
+        elseif StdevIMP == 2
+
+            C = (data(indx(1):indx(2),:) - mean(data(indx(1):indx(2),:)))./stdIn;
+
+        end
         
         %C
         C(isnan(C)) = 0;
@@ -104,7 +137,7 @@ while indxCounter(2) <= numbScans
         %s are the singular values
         s = svds(C,2);
         
-        %f is the pseudo fisher ratio
+        %f is the fisher ratio
         f(iter) = s(1)^2/s(2)^2; %#ok
         
         %matrix of probabilities
@@ -117,6 +150,8 @@ while indxCounter(2) <= numbScans
         indx(2) = indx(2) + 1;
         
     end
+
+    x2mat = zeros(sz(1), wndw*2);
     
     for ii = 1:sz(1)
         
@@ -127,11 +162,14 @@ while indxCounter(2) <= numbScans
         
         %retrieve the nonzero elements. mat is an off-diagonal matrix.
         nzx2 = nonzeros(mat(ii,:));
+        nzx2 = nzx2';
+
+        [x2mat] = chi2invROI_mex(nzx2, ii, x2mat);
         
-        for qq = 1:max(size(nzx2))
-            %every probability is translated to a chi2 value with a dof of 1.
-            x2mat(ii,qq) = chi2inv(nzx2(qq),1); %#ok
-        end
+%         for qq = 1:max(size(nzx2))
+%             %every probability is translated to a chi2 value with a dof of 1.
+%             x2mat(ii,qq) = chi2inv(nzx2(qq),1);
+%         end
         
         %sum the chi2 values
         x2vec(ii) = sum(x2mat(ii,:),2); %#ok
@@ -145,14 +183,25 @@ while indxCounter(2) <= numbScans
     
     %Change the orientation to a column
     pvals = pv';
+
+    %need to do some boolean work
+    boolVect = pvals;
+    boolVect(boolVect < cutOff) = 0;
+    boolVect(boolVect > 0) = 1;
+
+    [~, ~, boolVect] = spacesBetweenCleanUp(boolVect);
+
+    arrayBools = [arrayBools boolVect']; %#ok
     
-    arrayPvals = [arrayPvals pvals];
+    arrayPvals = [arrayPvals pvals]; %#ok
     
     %converts values < cutoff to 0
     pValCutOff = arrayPvals;
     pValCutOff(pValCutOff < cutOff) = 0;
+
+    apvIndx = 1 + apvIndx;
   
-end
+end %end of the while loop.
     
 %need to drop data points that are below the pValCutOff
 %itterate over the entire array
@@ -160,7 +209,7 @@ end
 
 %first calculate the TIC
 %empty array for TIC data
-ticData = [];
+ticData = zeros(1, size(specdata, 1));
 
 for i = 1:numbScans
     
@@ -177,40 +226,42 @@ ticDataReshaped = reshape(ticData, scansPerMod, []);
 %connected components segmentation here
 
 %Convert the image to Black and White (pValCutOff)
-BWpVal = pValCutOff > 0;
+%BWpVal = pValCutOff > 0;
+BWpVal = arrayBools > 0;
 
 %calculate connected components
 conComp = bwconncomp(BWpVal);
 
 %Creating label matrix for each ROI
 labMatrix = labelmatrix(conComp);
+% 
+% %number of ROIs
+% numROIs = max(labMatrix(:));
 
-%number of ROIs
-numROIs = max(labMatrix(:));
-
-%display a graph if the user requests one. Shows the ROIS overlaid on the
-%TIC of the input chromatogram.
-if choicePrint == 'y'
-    
-    Lrgb = label2rgb(labMatrix,'jet','w','shuffle');
-    
-    clims = [10 5E5];
-    colormap jet;
-    imagesc((ticDataReshaped),clims);
-    set(gca,'YDir','normal');
-    ylabel("2nd Dimension Acquisitions"); xlabel("1st Dimension Acquisitions");
-    hold on
-    himage = imshow(Lrgb);
-    himage.AlphaData = 0.8;
-
-else
-    
-end
+% %display a graph if the user requests one. Shows the ROIS overlaid on the
+% %TIC of the input chromatogram.
+% if choicePrint == 'y'
+%     
+%     Lrgb = label2rgb(labMatrix,'jet','w','shuffle');
+%     
+%     clims = [10 5E5];
+%     colormap jet;
+%     imagesc((ticDataReshaped),clims);
+%     set(gca,'YDir','normal');
+%     ylabel("2nd Dimension Acquisitions"); xlabel("1st Dimension Acquisitions");
+%     hold on
+%     himage = imshow(Lrgb);
+%     himage.AlphaData = 0.8;
+% 
+% else
+%     
+% end
 
 %itterate over the entire chromatogram and drop noise regions giving output
 %of just ROIs
 %populate tensor with zeros for speed
 noiseDropped = zeros(scansPerMod*numbMods, ionsPerScan);
+noiseRegions = zeros(scansPerMod*numbMods, ionsPerScan);
 
 for ii = 1:numbMods*scansPerMod
     
@@ -221,6 +272,7 @@ for ii = 1:numbMods*scansPerMod
     else
         
         noiseDropped(ii,:) = zeros(1, ionsPerScan);
+        noiseRegions(ii,:) = specdata(ii,:);
         
     end
     
