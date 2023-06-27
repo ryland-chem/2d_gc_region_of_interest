@@ -115,7 +115,6 @@ while indxCounter(2) <= numbScans
     while indx(2) <= sz(1)
         
         %C is the autoscaled matrix
-        %need to update this to make more sense
 
         if StdevIMP == 1
 
