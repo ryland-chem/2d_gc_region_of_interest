@@ -6,8 +6,6 @@ function [labMatrix, numROIs] = dispROIsgcxgc(dataOut, plot)
     
     boolArray = dataOut.boolArray;
 
-    figure;
-
     %Convert the image to Black and White (pValCutOff)
     BWpVal = boolArray > 0;
     
@@ -21,6 +19,8 @@ function [labMatrix, numROIs] = dispROIsgcxgc(dataOut, plot)
     numROIs = max(labMatrix(:));
 
     if plot == 1
+
+        figure;
         
         Lrgb = label2rgb(labMatrix,'jet','w','shuffle');
         
