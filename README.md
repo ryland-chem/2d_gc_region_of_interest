@@ -1,6 +1,6 @@
 # GC×GC-MS Region of Interest Selection
 
-## Ryland T. Giebelhaus, Michael D. Sorochan Armstrong, A. Paulina de la Mata, and James J. Harynuk*
+## Ryland T. Giebelhaus, A. Paulina de la Mata, and James J. Harynuk*
 
 ### University of Alberta, Edmonton, Canada
 #### james.harynuk@ualberta.ca

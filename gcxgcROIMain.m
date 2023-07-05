@@ -1,3 +1,33 @@
+%%Region of interest selection for 2D GCxGC-MS data using pseudo-fisher
+%%ratios with connected components segmentation
+%
+%(c) 2022 Ryland T. Giebelhaus, A. Paulina de la
+%Mata, James J. Harynuk
+%
+%Utilisation of a moving window function to calculate the f ratios for a
+%particular region of interest. Smaller windows are more sensitive to
+%smaller features, but may split larger regions of interest. Larger windows
+%are less sensitive to small regions and create larger regions of interest.
+%
+%Code does the following
+%-takes tensor IxJxK where I is 2nd dimension scans, J is 1st dimension
+%scans, and K is ion intensities for m/z's in scan, moving window size
+%(typically 10-45) and probability threshold (0.7 is a good place to
+%start)
+%-Returns array of probability values (0-1) across entire chromatographic
+%plane and probabilities above probability threshold
+%-TIC of input data
+%-matrix of where each ROI is located
+%-number of ROIs found
+%-tensor of uploaded chromatogram with the noise (non ROIs) dropped.
+
+%%%inputs
+%%chromTensor: IxJxK where I is 2nd dimension scans, J is 1st dimension
+%scans, and K is ion intensities for m/z's in scan
+%%wndw: Moving window size, ideally the average peak width, start with 10
+%and work up from there
+%%cutOff: probability threshold, start with 0.7 and change depending on
+%desired confidence level
 %to do the gcxgc roi algorithm with one itteration, autoscaling with the
 %standard deviation of the data in the moving window, set mode = 1. Set
 %itters to any value
@@ -6,6 +36,18 @@
 %select how many times to itterate over the function (>= 2).
 
 %to plot data set plot = 1, not plot = 0
+
+%%%outputs
+%%arrayPvals: Returns array of probability values (0-1) across entire
+%chromatographic plane
+%%pValCutOff: probability values above the probability threshold across
+%chromatographic plane
+%%ticDataReshaped: TIC formatted in shape of chromatographic plane
+%%labMatrix: IxJ matrix showing whether a scan is in an ROI (>0) and which
+% ROI a given scan is located in.
+%%numROIs: The number of distinct ROIs found using the user inputs
+%%noiseDropped: IxJxK tensor of uploaded data except the nonROI scans are
+%dropped (set to zero)
 
 function [dataOut] = gcxgcROIMain(chromTensor, wndw, cutOff, mode, plot, itters)
 
